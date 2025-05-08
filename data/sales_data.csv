@@ -1,0 +1,4 @@
+sales_id,sales_date,order_id,customer_id,item_id,item_name,quantity,unit_price,discount_rate,total_amount
+1,2025-07-04,5001,301,101,りんご,5,120.0,0.1,594.0
+2,2025-07-04,5002,,102,バナナ,3,100.0,0,330.0
+3,2025-07-05,5003,302,103,みかん,4,110.0,0.05,462.0

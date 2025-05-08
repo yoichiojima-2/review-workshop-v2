@@ -1,0 +1,4 @@
+purchase_id,purchase_date,item_id,item_name,quantity,unit_price,supplier_id,supplier_name
+1,2025-07-01,101,りんご,50,100.0,201,果物商事
+2,2025-07-02,102,バナナ,30,80.0,202,南国フルーツ
+3,2025-07-03,103,みかん,40,90.0,201,果物商事
