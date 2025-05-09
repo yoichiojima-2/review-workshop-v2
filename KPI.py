@@ -108,7 +108,6 @@ def calc_customer_kpis(sales_df: pd.DataFrame) -> dict:
     - 平均購入頻度
 
     args:
-        customer_df (pd.DataFrame): 顧客データ
         sales_df (pd.DataFrame): 売上データ
     returns:
         dict: 顧客KPI
