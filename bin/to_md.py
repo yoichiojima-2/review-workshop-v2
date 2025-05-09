@@ -13,7 +13,7 @@ def main():
             md += "".join(cell["source"]) + "\n\n"
         elif cell["cell_type"] == "code":
             md += f"```python\n{''.join(cell['source'])}\n```\n\n"
-    
+
     Path("KPI.md").write_text(md)
     print("Markdown file created successfully.")
 
