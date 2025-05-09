@@ -4,11 +4,11 @@ import logging
 import argparse
 import json
 
-customer_file = 'customer_data.csv'
-purchase_file = 'purchase_data.csv'
-sales_file = 'sales_data.csv'
-start_date_str = '2024-01-01'
-end_date_str = '2024-12-31'
+customer_file = 'data/customer_data.csv'
+purchase_file = 'data/purchase_data.csv'
+sales_file = 'data/sales_data.csv'
+start_date_str = '2025-01-01'
+end_date_str = '2025-12-31'
 
 start_date = pd.to_datetime(start_date_str).date() if start_date_str else None
 end_date = pd.to_datetime(end_date_str).date() if end_date_str else None
