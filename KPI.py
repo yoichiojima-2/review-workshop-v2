@@ -72,7 +72,14 @@ except Exception as e:
     sales_kpis = {}
 
 try:
-    if customer_df is not None and not customer_df.empty and sales_df is not None and not sales_df.empty and 'customer_id' in sales_df.columns and 'sales_date' in sales_df.columns:
+    if (
+        customer_df is not None
+        and not customer_df.empty
+        and sales_df is not None
+        and not sales_df.empty
+        and 'customer_id' in sales_df.columns
+        and 'sales_date' in sales_df.columns
+    ):
         print("顧客KPIを算出します。")
         df_sales_customer = sales_df.copy()
         df_sales_customer['sales_date'] = pd.to_datetime(df_sales_customer['sales_date']).dt.date
@@ -81,8 +88,21 @@ try:
         if end_date:
             df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] <= end_date]
 
-        repeat_customers = df_sales_customer.groupby('customer_id')['sales_date'].nunique()[df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count() if not df_sales_customer.empty else 0
-        average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean() if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0 else 0
+        if not df_sales_customer.empty:
+            repeat_customers = (
+                df_sales_customer
+                .groupby('customer_id')
+                ['sales_date']
+                .nunique()
+                [df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count()
+            )
+        else:
+            repeat_customers = 0
+
+        if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0:
+            average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean()
+        else:
+            average_purchase_frequency = 0
 
         customer_kpis = {
             "repeat_customers": repeat_customers,
@@ -107,7 +127,13 @@ try:
                 df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
 
             total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
-            product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).to_dict()
+            product_purchase_amount = (
+                df_purchase
+                .groupby('item_name')
+                [['quantity', 'unit_price']]
+                .apply(lambda x: (x['quantity'] * x['unit_price']).sum())
+                .to_dict()
+            )
 
             purchase_kpis = {
                 "total_purchase_amount": total_purchase_amount,
@@ -127,7 +153,7 @@ try:
         "customer_kpis": customer_kpis,
         "purchase_kpis": purchase_kpis
     }
-    print("\n--- 分析結果 ---")
+    print("--- 分析結果 ---")
     pprint(results)
     print("データ分析を完了しました。")
 except Exception as e:
