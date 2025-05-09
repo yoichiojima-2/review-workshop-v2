@@ -1,8 +1,5 @@
 import pandas as pd
 from datetime import datetime
-import logging
-import argparse
-import json
 from pprint import pprint
 
 customer_file = 'data/customer_data.csv'
@@ -56,10 +53,12 @@ try:
             if end_date:
                 df_sales = df_sales[df_sales['sales_date'] <= end_date]
 
-            total_revenue = df_sales['total_amount'].sum()
-            daily_revenue = df_sales.groupby('sales_date')['total_amount'].sum().to_dict()
+            total_revenue = int(df_sales['total_amount'].sum())
+            daily_revenue_df = df_sales.groupby('sales_date')['total_amount'].sum().astype(int)
+            daily_revenue_df.index = [i.strftime("%Y-%m-%d") for i in daily_revenue_df.index]
+            daily_revenue = daily_revenue_df.to_dict()
 
-            member_sales = df_sales[df_sales['customer_id'].notna()]['total_amount'].sum()
+            member_sales = int(df_sales[df_sales['customer_id'].notna()]['total_amount'].sum())
 
             sales_kpis = {
                 "total_revenue": total_revenue,
@@ -75,7 +74,14 @@ except Exception as e:
     sales_kpis = {}
 
 try:
-    if customer_df is not None and not customer_df.empty and sales_df is not None and not sales_df.empty and 'customer_id' in sales_df.columns and 'sales_date' in sales_df.columns:
+    if (
+        customer_df is not None
+        and not customer_df.empty
+        and sales_df is not None
+        and not sales_df.empty
+        and 'customer_id' in sales_df.columns
+        and 'sales_date' in sales_df.columns
+    ):
         print("顧客KPIを算出します。")
         df_sales_customer = sales_df.copy()
         df_sales_customer['sales_date'] = pd.to_datetime(df_sales_customer['sales_date']).dt.date
@@ -84,8 +90,22 @@ try:
         if end_date:
             df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] <= end_date]
 
-        repeat_customers = df_sales_customer.groupby('customer_id')['sales_date'].nunique()[df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count() if not df_sales_customer.empty else 0
-        average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean() if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0 else 0
+        if not df_sales_customer.empty:
+            repeat_customers = int(
+                df_sales_customer
+                .groupby('customer_id')
+                ['sales_date']
+                .nunique()
+                [df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1]
+                .count()
+            )
+        else:
+            repeat_customers = 0
+
+        if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0:
+            average_purchase_frequency = float(df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean())
+        else:
+            average_purchase_frequency = 0
 
         customer_kpis = {
             "repeat_customers": repeat_customers,
@@ -109,8 +129,15 @@ try:
             if end_date:
                 df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
 
-            total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
-            product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).to_dict()
+            total_purchase_amount = int((df_purchase['quantity'] * df_purchase['unit_price']).sum())
+            product_purchase_amount = (
+                df_purchase
+                .groupby('item_name')
+                [['quantity', 'unit_price']]
+                .apply(lambda x: (x['quantity'] * x['unit_price']).sum())
+                .astype(int)
+                .to_dict()
+            )
 
             purchase_kpis = {
                 "total_purchase_amount": total_purchase_amount,
@@ -130,7 +157,7 @@ try:
         "customer_kpis": customer_kpis,
         "purchase_kpis": purchase_kpis
     }
-    print("\n--- 分析結果 ---")
+    print("--- 分析結果 ---")
     pprint(results)
     print("データ分析を完了しました。")
 except Exception as e:
