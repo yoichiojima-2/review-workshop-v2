@@ -3,6 +3,7 @@ import datetime
 import logging
 import argparse
 import json
+from pprint import pprint
 
 customer_file = 'data/customer_data.csv'
 purchase_file = 'data/purchase_data.csv'
@@ -30,7 +31,7 @@ except FileNotFoundError:
     print(f"エラー: ファイル '{purchase_file}' が見つかりません。")
     purchase_df = None
 except Exception as e:
-    printr(f"エラー: '{purchase_file}' の読み込み中に予期しないエラーが発生しました: {e}")
+    print(f"エラー: '{purchase_file}' の読み込み中に予期しないエラーが発生しました: {e}")
     purchase_df = None
 
 try:
@@ -103,7 +104,7 @@ if purchase_df is not None and not purchase_df.empty:
             df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
 
         total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
-        product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).sort_values(ascending=False).to_dict()
+        product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).to_dict()
 
         purchase_kpis = {
             "total_purchase_amount": total_purchase_amount,
@@ -121,5 +122,5 @@ results = {
 }
 
 print("\n--- 分析結果 ---")
-print(json.dumps(results, indent=4, ensure_ascii=False))
+pprint(results)
 print("データ分析を完了しました。")
