@@ -1,8 +1,5 @@
 import pandas as pd
 from datetime import datetime
-import logging
-import argparse
-import json
 from pprint import pprint
 
 customer_file = 'data/customer_data.csv'
