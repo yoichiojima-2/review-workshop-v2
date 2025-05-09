@@ -1,5 +1,5 @@
 import pandas as pd
-import datetime
+from datetime import datetime
 import logging
 import argparse
 import json
@@ -11,8 +11,8 @@ sales_file = 'data/sales_data.csv'
 start_date_str = '2025-01-01'
 end_date_str = '2025-12-31'
 
-start_date = pd.to_datetime(start_date_str).date() if start_date_str else None
-end_date = pd.to_datetime(end_date_str).date() if end_date_str else None
+start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date() if start_date_str else None
+end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date() if end_date_str else None
 
 try:
     customer_df = pd.read_csv(customer_file)
@@ -44,83 +44,94 @@ except Exception as e:
     print(f"エラー: '{sales_file}' の読み込み中に予期しないエラーが発生しました: {e}")
     sales_df = None
 
-sales_kpis = {}
-if sales_df is not None and not sales_df.empty:
-    print("売上KPIを算出します。")
-    df_sales = sales_df.copy()
+try:
+    if sales_df is not None and not sales_df.empty:
+        print("売上KPIを算出します。")
+        df_sales = sales_df.copy()
 
-    if 'sales_date' in df_sales.columns:
-        df_sales['sales_date'] = pd.to_datetime(df_sales['sales_date']).dt.date
+        if 'sales_date' in df_sales.columns:
+            df_sales['sales_date'] = pd.to_datetime(df_sales['sales_date']).dt.date
+            if start_date:
+                df_sales = df_sales[df_sales['sales_date'] >= start_date]
+            if end_date:
+                df_sales = df_sales[df_sales['sales_date'] <= end_date]
+
+            total_revenue = df_sales['total_amount'].sum()
+            daily_revenue = df_sales.groupby('sales_date')['total_amount'].sum().to_dict()
+
+            member_sales = df_sales[df_sales['customer_id'].notna()]['total_amount'].sum()
+
+            sales_kpis = {
+                "total_revenue": total_revenue,
+                "daily_revenue": daily_revenue,
+                "member_sales": member_sales,
+            }
+        else:
+            print("売上データに 'sales_date' 列が存在しません。")
+    else:
+        print("売上データが空です。売上KPIの算出をスキップします。")
+except Exception as e:
+    print(f"エラー: 売上KPIの算出中に予期しないエラーが発生しました: {e}")
+    sales_kpis = {}
+
+try:
+    if customer_df is not None and not customer_df.empty and sales_df is not None and not sales_df.empty and 'customer_id' in sales_df.columns and 'sales_date' in sales_df.columns:
+        print("顧客KPIを算出します。")
+        df_sales_customer = sales_df.copy()
+        df_sales_customer['sales_date'] = pd.to_datetime(df_sales_customer['sales_date']).dt.date
         if start_date:
-            df_sales = df_sales[df_sales['sales_date'] >= start_date]
+            df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] >= start_date]
         if end_date:
-            df_sales = df_sales[df_sales['sales_date'] <= end_date]
+            df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] <= end_date]
 
-        total_revenue = df_sales['total_amount'].sum()
-        daily_revenue = df_sales.groupby('sales_date')['total_amount'].sum().to_dict()
+        repeat_customers = df_sales_customer.groupby('customer_id')['sales_date'].nunique()[df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count() if not df_sales_customer.empty else 0
+        average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean() if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0 else 0
 
-        member_sales = df_sales[df_sales['customer_id'].notna()]['total_amount'].sum()
-
-        sales_kpis = {
-            "total_revenue": total_revenue,
-            "daily_revenue": daily_revenue,
-            "member_sales": member_sales,
+        customer_kpis = {
+            "repeat_customers": repeat_customers,
+            "average_purchase_frequency": average_purchase_frequency
         }
     else:
-        print("売上データに 'sales_date' 列が存在しません。")
-else:
-    print("売上データが空です。売上KPIの算出をスキップします。")
+        print("顧客データまたは売上データが不十分なため、顧客KPIの算出をスキップします。")
+except Exception as e:
+    print(f"エラー: 顧客KPIの算出中に予期しないエラーが発生しました: {e}")
+    customer_kpis = {}
 
-customer_kpis = {}
-if customer_df is not None and not customer_df.empty and sales_df is not None and not sales_df.empty and 'customer_id' in sales_df.columns and 'sales_date' in sales_df.columns:
-    print("顧客KPIを算出します。")
-    df_sales_customer = sales_df.copy()
-    df_sales_customer['sales_date'] = pd.to_datetime(df_sales_customer['sales_date']).dt.date
-    if start_date:
-        df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] >= start_date]
-    if end_date:
-        df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] <= end_date]
+try:
+    if purchase_df is not None and not purchase_df.empty:
+        print("仕入れKPIを算出します。")
+        df_purchase = purchase_df.copy()
 
-    repeat_customers = df_sales_customer.groupby('customer_id')['sales_date'].nunique()[df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count() if not df_sales_customer.empty else 0
-    average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean() if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0 else 0
+        if 'purchase_date' in df_purchase.columns:
+            df_purchase['purchase_date'] = pd.to_datetime(df_purchase['purchase_date']).dt.date
+            if start_date:
+                df_purchase = df_purchase[df_purchase['purchase_date'] >= start_date]
+            if end_date:
+                df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
 
-    customer_kpis = {
-        "repeat_customers": repeat_customers,
-        "average_purchase_frequency": average_purchase_frequency
+            total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
+            product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).to_dict()
+
+            purchase_kpis = {
+                "total_purchase_amount": total_purchase_amount,
+                "product_purchase_amount": product_purchase_amount,
+            }
+        else:
+            print("仕入れデータに 'purchase_date' 列が存在しません。")
+    else:
+        print("仕入れデータが空です。仕入れKPIの算出をスキップします。")
+except Exception as e:
+    print(f"エラー: 仕入れKPIの算出中に予期しないエラーが発生しました: {e}")
+    purchase_kpis = {}
+
+try:
+    results = {
+        "sales_kpis": sales_kpis,
+        "customer_kpis": customer_kpis,
+        "purchase_kpis": purchase_kpis
     }
-else:
-    print("顧客データまたは売上データが不十分なため、顧客KPIの算出をスキップします。")
-
-purchase_kpis = {}
-if purchase_df is not None and not purchase_df.empty:
-    print("仕入れKPIを算出します。")
-    df_purchase = purchase_df.copy()
-
-    if 'purchase_date' in df_purchase.columns:
-        df_purchase['purchase_date'] = pd.to_datetime(df_purchase['purchase_date']).dt.date
-        if start_date:
-            df_purchase = df_purchase[df_purchase['purchase_date'] >= start_date]
-        if end_date:
-            df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
-
-        total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
-        product_purchase_amount = df_purchase.groupby('item_name')[['quantity', 'unit_price']].apply(lambda x: (x['quantity'] * x['unit_price']).sum()).to_dict()
-
-        purchase_kpis = {
-            "total_purchase_amount": total_purchase_amount,
-            "product_purchase_amount": product_purchase_amount,
-        }
-    else:
-        print("仕入れデータに 'purchase_date' 列が存在しません。")
-else:
-    print("仕入れデータが空です。仕入れKPIの算出をスキップします。")
-
-results = {
-    "sales_kpis": sales_kpis,
-    "customer_kpis": customer_kpis,
-    "purchase_kpis": purchase_kpis
-}
-
-print("\n--- 分析結果 ---")
-pprint(results)
-print("データ分析を完了しました。")
+    print("\n--- 分析結果 ---")
+    pprint(results)
+    print("データ分析を完了しました。")
+except Exception as e:
+    print(f"エラー: 分析結果の出力中に予期しないエラーが発生しました: {e}")
