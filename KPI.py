@@ -53,10 +53,12 @@ try:
             if end_date:
                 df_sales = df_sales[df_sales['sales_date'] <= end_date]
 
-            total_revenue = df_sales['total_amount'].sum()
-            daily_revenue = df_sales.groupby('sales_date')['total_amount'].sum().to_dict()
+            total_revenue = int(df_sales['total_amount'].sum())
+            daily_revenue_df = df_sales.groupby('sales_date')['total_amount'].sum().astype(int)
+            daily_revenue_df.index = [i.strftime("%Y-%m-%d") for i in daily_revenue_df.index]
+            daily_revenue = daily_revenue_df.to_dict()
 
-            member_sales = df_sales[df_sales['customer_id'].notna()]['total_amount'].sum()
+            member_sales = int(df_sales[df_sales['customer_id'].notna()]['total_amount'].sum())
 
             sales_kpis = {
                 "total_revenue": total_revenue,
@@ -89,18 +91,19 @@ try:
             df_sales_customer = df_sales_customer[df_sales_customer['sales_date'] <= end_date]
 
         if not df_sales_customer.empty:
-            repeat_customers = (
+            repeat_customers = int(
                 df_sales_customer
                 .groupby('customer_id')
                 ['sales_date']
                 .nunique()
-                [df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1].count()
+                [df_sales_customer.groupby('customer_id')['sales_date'].nunique() > 1]
+                .count()
             )
         else:
             repeat_customers = 0
 
         if not df_sales_customer.empty and df_sales_customer['customer_id'].nunique() > 0:
-            average_purchase_frequency = df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean()
+            average_purchase_frequency = float(df_sales_customer.groupby('customer_id')['sales_date'].nunique().mean())
         else:
             average_purchase_frequency = 0
 
@@ -126,12 +129,13 @@ try:
             if end_date:
                 df_purchase = df_purchase[df_purchase['purchase_date'] <= end_date]
 
-            total_purchase_amount = (df_purchase['quantity'] * df_purchase['unit_price']).sum()
+            total_purchase_amount = int((df_purchase['quantity'] * df_purchase['unit_price']).sum())
             product_purchase_amount = (
                 df_purchase
                 .groupby('item_name')
                 [['quantity', 'unit_price']]
                 .apply(lambda x: (x['quantity'] * x['unit_price']).sum())
+                .astype(int)
                 .to_dict()
             )
 
