@@ -1,3 +1,11 @@
+"""
+飲食店の運営に関する会員顧客データ, 仕入れデータ, 売上データを読み込み,
+指定された期間における主要なKPI (Key Performance Indicators) を算出する
+parameters:
+    start_date_str (str): 開始日 (YYYY-MM-DD)
+    end_date_str (str): 終了日 (YYYY-MM-DD)
+"""
+
 import pandas as pd
 from datetime import datetime, date
 from pprint import pprint
@@ -175,15 +183,14 @@ def calc_purchase_kpis(purchase_df: pd.DataFrame) -> dict:
 
     try:
         print("仕入れKPIを算出します。")
-        df_purchase = purchase_df.copy()
-        df_purchase = filter_by_date(df_purchase, "purchase_date", START_DATE, END_DATE)
+        df_filtered = filter_by_date(purchase_df.copy(), "purchase_date", START_DATE, END_DATE)
 
         # 総仕入れ金額を算出
-        total_purchase_amount = int((df_purchase["quantity"] * df_purchase["unit_price"]).sum())
+        total_purchase_amount = int((df_filtered["quantity"] * df_filtered["unit_price"]).sum())
 
         # 商品別仕入れ金額を算出
         product_purchase_amount = (
-            df_purchase.groupby("item_name")[["quantity", "unit_price"]]
+            df_filtered.groupby("item_name")[["quantity", "unit_price"]]
             .apply(lambda x: (x["quantity"] * x["unit_price"]).sum())
             .astype(int)
             .to_dict()
